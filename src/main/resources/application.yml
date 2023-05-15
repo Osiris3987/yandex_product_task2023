@@ -1,0 +1,31 @@
+spring:
+  jpa:
+    database: POSTGRESQL
+    show-sql: true
+    hibernate:
+      ddl-auto: create
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://${POSTGRES_SERVER}:${POSTGRES_PORT}/${POSTGRES_DB}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+
+  cache:
+    cache-names:
+      - rate-limit-buckets
+    caffeine:
+      spec: maximumSize=1000,expireAfterAccess=3600s
+
+bucket4j:
+  filters:
+    - url: /.*
+      strategy: first
+      http-response-body: "{ \"status\": 429, \"error\": \"Too Many Requests\", \"message\": \"You have exhausted your API Request Quota\" }"
+      cache-name: rate-limit-buckets
+      rate-limits:
+        - cache-key: "getHeader('Host')"
+          bandwidths:
+            - capacity: 10
+              time: 1
+              unit: seconds
+  enabled: true
